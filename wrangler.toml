@@ -1,9 +1,33 @@
 
+# Cloudflare Workers の設定
+# ref: https://developers.cloudflare.com/workers/cli-wrangler/configuration/
+
+# Worker スクリプトの名前
 name = "konomitv-api"
+
+# wrangler build がプロジェクトをビルドする方法
+## javascript, webpack, rust から選べる
 type = "javascript"
 
-account_id = ""
-workers_dev = true
-route = ""
-zone_id = ""
+# Worker を実行する Zone 上の、URLパターンで指定されたルート
+# アスタリスク (*) で複数の URL に一致する動的パターンを作成できる
+route = "app.konomi.tv/api/*"
+
+# Worker を *.workers.dev にデプロイするかどうかを指定するフラグ
+workers_dev = false
+
+# Zone に関連付けられている Cloudflare アカウントの ID
+## wrangler whoami で取得できる
+## CF_ACCOUNT_ID 環境変数でも指定できる（その場合は空文字にしておく）
+account_id = "fbaa60959e71878e0f6778f6727a2e89"
+
+# スクリプトを実行する Zone またはドメインの ID
+## *.workers.dev を使う場合は空で OK
+## CF_ZONE_ID 環境変数でも指定できる（その場合は空文字にしておく）
+zone_id = "1bb22b199db41fffdba23e0b8ba8ca26"
+
+# Worker の動作に互換性を持たせる日付
+## この日付より前に行われた Cloudflare Workers の変更がすべて有効化される
+## この日付より後に行われた Cloudflare Workers の変更は日付を更新しない限り有効化されない
+## ref: https://developers.cloudflare.com/workers/platform/compatibility-dates
 compatibility_date = "2022-04-28"

@@ -2,8 +2,24 @@
   "name": "KonomiTV-API",
   "version": "1.0.0",
   "private": true,
-  "main": "index.js",
+  "module": "./dist/index.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node build.mjs",
+    "dev": "miniflare --watch --debug --port 8787",
+    "publish-worker": "cross-env NODE_ENV=production wrangler publish"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^2.2.2",
+    "@types/service-worker-mock": "^2.0.1",
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.13.4",
+    "miniflare": "^1.4.1",
+    "typescript": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "dependencies": {
+    "itty-router": "^2.6.1"
   }
 }

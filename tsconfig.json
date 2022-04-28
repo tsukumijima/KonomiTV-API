@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": ["esnext", "webworker"],
+        "strict": true,
+        "moduleResolution": "node",
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "types": [
+            "@cloudflare/workers-types",
+            "@types/service-worker-mock"
+        ],
+    },
+}

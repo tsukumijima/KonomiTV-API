@@ -1,9 +1,10 @@
 export {};
 
 declare global {
-    interface Env {}
-    interface Context {
+
+    interface WorkerContext {
         waitUntil(promise: Promise<any>): void;
+        passThroughOnException: () => void;
     }
 
     interface WebSocket {

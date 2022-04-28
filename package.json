@@ -2,7 +2,7 @@
   "name": "KonomiTV-API",
   "version": "1.0.0",
   "private": true,
-  "module": "./dist/index.mjs",
+  "module": "./dist/worker.mjs",
   "scripts": {
     "build": "node build.mjs",
     "dev": "miniflare --watch --debug --port 8787",

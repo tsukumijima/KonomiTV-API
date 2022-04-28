@@ -7,9 +7,9 @@ import { Router } from 'itty-router';
 const router = Router({base: '/api'});
 
 /**
- * Twitter API (OAuth 1.0a) の Callback URL の実装
+ * Twitter API (OAuth 1.0a) のコールバック URL の実装
  * クエリの "server" パラメーターに設定された KonomiTV サーバーにクエリごと 302 リダイレクトする API
- * KonomiTV サーバーの URL は環境によってまちまちで Callback URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
+ * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
  * KonomiTV サーバーは oauth_verifier さえ取れれば OAuth 認証を続行できる
  */
 router.get('/redirect/twitter', (request) => {

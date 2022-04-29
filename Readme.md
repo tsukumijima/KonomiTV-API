@@ -7,12 +7,12 @@
 
 ## 概要
 
-[https://github.com/gmencz/cloudflare-workers-typescript-esbuild-esm](gmencz/cloudflare-workers-typescript-esbuild-esm) を参考にして開発しました。
+[gmencz/cloudflare-workers-typescript-esbuild-esm](https://github.com/gmencz/cloudflare-workers-typescript-esbuild-esm) を参考にして開発しました。
 
 現時点では、Twitter API のコールバック URL を、KonomiTV サーバーにクエリごと 302 リダイレクトする API のみ実装しています。  
 ちょっと URL を修正してリダイレクトするだけの API のためだけにサーバーを立てたくなかったので、無料枠の大きい Cloudflare Workers を採用しました。
 
-Twitter との OAuth 認証では、事前にコールバックする URL (Callback URLs) を開発者ダッシュボードから設定しておく必要があります。  
+Twitter との OAuth 認証では、事前にコールバックする URL (Callback URLs) をデベロッパーダッシュボードから設定しておく必要があります。  
 一方、KonomiTV サーバーの URL は環境によってまちまちで、コールバックする URL を一意に決められません。
 
 > コールバック URL は複数設定できるものの、考えられるすべての URL を指定するのは非現実的…。
@@ -71,4 +71,3 @@ $ yarn publish-worker
 ## License
 
 [MIT License](License.txt)
-

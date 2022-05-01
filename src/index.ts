@@ -52,7 +52,7 @@ router.get('/redirect/twitter', (request) => {
 
     // リダイレクト先の URL を組み立てる
     // それぞれ末尾の / (URL) と & (クエリ) を除去
-    const redirect_url = `${server_url.replace(/\/$/, '')}/api/settings/twitter/callback?${redirect_url_query.replace(/\&$/, '')}`;
+    const redirect_url = `${server_url.replace(/\/$/, '')}/api/twitter/callback?${redirect_url_query.replace(/\&$/, '')}`;
     console.log(`Redirect to: ${redirect_url}`);
 
     // 302 リダイレクトを行う

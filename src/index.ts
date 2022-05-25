@@ -1,16 +1,18 @@
 
 import { Router } from 'itty-router';
 
+
 // API のベースを指定してルーターを初期化
 // 実際にどのサブディレクトリにデプロイされるかは関係なく、URL 上のルート (example.com/) から解析されるらしい
 // ref: https://github.com/kwhitley/itty-router
 const router = Router({base: '/api'});
 
+
 /**
  * Twitter API (OAuth 1.0a) のコールバック URL の実装
- * クエリの "server" パラメーターに設定された KonomiTV サーバーにクエリごと 302 リダイレクトする API
+ * クエリの "server" パラメーターで指定された KonomiTV サーバーに、クエリごと 302 リダイレクトする API
  * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
- * KonomiTV サーバーは oauth_verifier さえ取れれば OAuth 認証を続行できる
+ * KonomiTV サーバーは oauth_verifier さえ取れれば、OAuth 認証を続行できる
  */
 router.get('/redirect/twitter', (request) => {
 
@@ -59,6 +61,74 @@ router.get('/redirect/twitter', (request) => {
     return Response.redirect(redirect_url, 302);
 });
 
+
+/**
+ * ニコニコ API (OAuth 2.0) のコールバック URL の実装
+ * クエリの "state" パラメーター内の JSON で指定された KonomiTV サーバーに、クエリごと 302 リダイレクトする API
+ * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
+ * KonomiTV サーバーは認証コードとユーザーの JWT アクセストークンさえ取れれば、OAuth 認証を続行できる
+ */
+router.get('/redirect/niconico', (request) => {
+
+    // "state" パラメーターが設定されていない
+    if (request.query?.state === undefined) {
+        return new Response(JSON.stringify({'detail': 'URL query does not have "status" parameter'}), {
+            headers: {'content-type': 'application/json'},
+            status: 400,
+        });
+    }
+
+    // "state" パラメーターをデコード
+    // まず Base64 デコードし、さらに JSON デコードしてオブジェクトにする
+    let state: {[key: string]: string};
+    try {
+        state = JSON.parse(atob(request.query?.state));
+    } catch (error) {
+        return new Response(JSON.stringify({'detail': '"state" parameter is invalid'}), {
+            headers: {'content-type': 'application/json'},
+            status: 400,
+        });
+    }
+
+    // KonomiTV サーバーの URL
+    // https://192-168-1-11.local.konomi.tv/ のようなフォーマット
+    const server_url = state['server']
+
+    // "server" パラメーターが URL ではない
+    // ref: https://qiita.com/nagimaruxxx/items/c2f186a2df5e32233122
+    if (server_url.match(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/g) === null) {
+        return new Response(JSON.stringify({'detail': '"server" parameter is not URL'}), {
+            headers: {'content-type': 'application/json'},
+            status: 400,
+        });
+    }
+
+    // KonomiTV サーバーに渡す、ユーザーの JWT アクセストークン
+    const user_access_token = state['user_access_token'];
+
+    // "state" パラメーター以外のクエリを再構築
+    let redirect_url_query = '';
+    for (const [param_key, param_value] of Object.entries(request.query as Object)) {
+
+        // "state" パラメーターはもう不要なので追加しない
+        if (param_key === 'state') continue;
+
+        // key=value の組を追加
+        redirect_url_query += `${param_key}=${param_value}&`;
+    }
+
+    // クエリに user_access_token を追加
+    redirect_url_query += `user_access_token=${user_access_token}`;
+
+    // リダイレクト先の URL を組み立てる
+    const redirect_url = `${server_url.replace(/\/$/, '')}/api/niconico/callback?${redirect_url_query}`;
+    console.log(`Redirect to: ${redirect_url}`);
+
+    // 302 リダイレクトを行う
+    return Response.redirect(redirect_url, 302);
+});
+
+
 /**
  * どのルートにも当てはまらなかったときのルート
  * 404 Not Found を返す
@@ -69,6 +139,7 @@ router.get('/*', () => {
         status: 404,
     });
 });
+
 
 // ES Modules 構文の Worker を定義
 // まだ普及していないけど、とりあえず動くのでヨシ！（このあたりで散々試行錯誤した）

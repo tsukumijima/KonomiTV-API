@@ -9,15 +9,18 @@
 
 [gmencz/cloudflare-workers-typescript-esbuild-esm](https://github.com/gmencz/cloudflare-workers-typescript-esbuild-esm) を参考にして開発しました。
 
-現時点では、Twitter API のコールバック URL を、KonomiTV サーバーにクエリごと 302 リダイレクトする API のみ実装しています。  
+現時点では、Twitter API / ニコニコ API のコールバック URL を、KonomiTV サーバーにクエリごと 302 リダイレクトする API を実装しています。  
 ちょっと URL を修正してリダイレクトするだけの API のためだけにサーバーを立てたくなかったので、無料枠の大きい Cloudflare Workers を採用しました。
 
-Twitter との OAuth 認証では、事前にコールバックする URL (Callback URLs) をデベロッパーダッシュボードから設定しておく必要があります。  
-一方、KonomiTV サーバーの URL は環境によってまちまちで、コールバックする URL を一意に決められません。
+OAuth 認証では、事前にコールバック先の URL (Callback URLs) をサービスのデベロッパーダッシュボードなどで設定しておく必要があります。  
+一方、KonomiTV サーバーの URL (プライベート IP アドレス) は環境によってまちまちで、コールバックする URL を一意に決められません。
 
 > コールバック URL は複数設定できるものの、考えられるすべての URL を指定するのは非現実的…。
 
-そこで、一旦上記の API にコールバック URL を集約し、そこからクエリの "server" パラメーターに指定された KonomiTV サーバーの URL (ex: https://192-168-1-11.local.konomi.tv/) へ振り分けるようにしました。  
+そこで、一旦この API にコールバック URL を集約しました。  
+Twitter API では、リクエストをクエリの "server" パラメーターで指定された KonomiTV サーバーの URL へ振り分けます。
+それ以外の API では、リクエストをクエリの "state" パラメーター内の JSON で指定された KonomiTV サーバーの URL へ振り分けます。
+
 こうすることで、コールバック URL が1つに定まらなくても、コールバック結果を KonomiTV サーバーに返せるようになります。
 
 ## 開発

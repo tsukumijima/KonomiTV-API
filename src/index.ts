@@ -94,10 +94,10 @@ router.get('/redirect/niconico', (request) => {
     // https://192-168-1-11.local.konomi.tv/ のようなフォーマット
     const server_url = state['server']
 
-    // "server" パラメーターが URL ではない
+    // "server" プロパティが URL ではない
     // ref: https://qiita.com/nagimaruxxx/items/c2f186a2df5e32233122
     if (server_url.match(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/g) === null) {
-        return new Response(JSON.stringify({'detail': '"server" parameter is not URL'}), {
+        return new Response(JSON.stringify({'detail': '"server" property is not URL'}), {
             headers: {'content-type': 'application/json'},
             status: 400,
         });

@@ -103,9 +103,6 @@ router.get('/redirect/niconico', (request) => {
         });
     }
 
-    // KonomiTV サーバーに渡す、ユーザーの JWT アクセストークン
-    const user_access_token = state['user_access_token'];
-
     // "state" パラメーター以外のクエリを再構築
     let redirect_url_query = '';
     for (const [param_key, param_value] of Object.entries(request.query as Object)) {
@@ -117,8 +114,15 @@ router.get('/redirect/niconico', (request) => {
         redirect_url_query += `${param_key}=${param_value}&`;
     }
 
-    // クエリに user_access_token を追加
-    redirect_url_query += `user_access_token=${user_access_token}`;
+    // "state" パラメーター内の JSON の "server" プロパティ以外のプロパティをクエリに追加
+    for (const [param_key, param_value] of Object.entries(state)) {
+
+        // "server" プロパティはもう不要なので追加しない
+        if (param_key === 'server') continue;
+
+        // key=value の組を追加
+        redirect_url_query += `${param_key}=${param_value}&`;
+    }
 
     // リダイレクト先の URL を組み立てる
     const redirect_url = `${server_url.replace(/\/$/, '')}/api/niconico/callback?${redirect_url_query}`;

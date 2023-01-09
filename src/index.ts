@@ -22,7 +22,7 @@ router.get('/redirect/twitter', (request) => {
 
     // KonomiTV サーバーの URL
     // https://192-168-1-11.local.konomi.tv/ のようなフォーマット
-    const server_url = request.query?.server;
+    const server_url = request.query?.server as string | undefined;
 
     // "server" パラメーターが設定されていない
     if (server_url === undefined) {
@@ -43,7 +43,7 @@ router.get('/redirect/twitter', (request) => {
 
     // "server" パラメーター以外のクエリを再構築
     let redirect_url_query = '';
-    for (const [param_key, param_value] of Object.entries(request.query as Object)) {
+    for (const [param_key, param_value] of Object.entries(request.query as {[key: string]: string})) {
 
         // "server" パラメーターはもう不要なので追加しない
         if (param_key === 'server') continue;
@@ -72,7 +72,7 @@ router.get('/redirect/niconico', (request) => {
 
     // "state" パラメーターが設定されていない
     if (request.query?.state === undefined) {
-        return new Response(JSON.stringify({'detail': 'URL query does not have "status" parameter'}), {
+        return new Response(JSON.stringify({'detail': 'URL query does not have "state" parameter'}), {
             headers: {'content-type': 'application/json'},
             status: 400,
         });
@@ -82,7 +82,7 @@ router.get('/redirect/niconico', (request) => {
     // まず Base64 デコードし、さらに JSON デコードしてオブジェクトにする
     let state: {[key: string]: string};
     try {
-        state = JSON.parse(atob(request.query?.state));
+        state = JSON.parse(atob(request.query?.state as string));
     } catch (error) {
         return new Response(JSON.stringify({'detail': '"state" parameter is invalid'}), {
             headers: {'content-type': 'application/json'},
@@ -105,7 +105,7 @@ router.get('/redirect/niconico', (request) => {
 
     // "state" パラメーター以外のクエリを再構築
     let redirect_url_query = '';
-    for (const [param_key, param_value] of Object.entries(request.query as Object)) {
+    for (const [param_key, param_value] of Object.entries(request.query as {[key: string]: string})) {
 
         // "state" パラメーターはもう不要なので追加しない
         if (param_key === 'state') continue;
@@ -150,7 +150,7 @@ router.get('/*', () => {
 // ref: https://developers.cloudflare.com/workers/cli-wrangler/configuration/#modules
 // ref: https://github.com/gmencz/cloudflare-workers-typescript-esbuild-esm
 export default {
-    async fetch(request: Request, env: object, context: WorkerContext) {
+    async fetch(request: Request, env: {[key: string]: any}, context: ExecutionContext) {
 
         // ルーターに Request を投げ、Response (あるいは undefined) を受け取る
         // ref: https://github.com/kwhitley/itty-router

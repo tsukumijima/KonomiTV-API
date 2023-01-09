@@ -157,11 +157,11 @@ export default {
         const response = await router.handle(request);
 
         // Response が返ってこなかった場合（基本的にはないが、念のため）
-        // 500 Internal Server Error を返す
+        // 422 Unprocessable Entity を返す
         if (response === undefined) {
-            return new Response(JSON.stringify({'detail': 'Internal Server Error'}), {
+            return new Response(JSON.stringify({'detail': 'Unprocessable Entity'}), {
                 headers: {'content-type': 'application/json'},
-                status: 500,
+                status: 422,
             });
         }
 

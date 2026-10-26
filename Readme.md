@@ -28,28 +28,14 @@ OAuth の認証では、コールバック先の URL を、事前にサービス
 ### 環境構築
 
 ```bash
-$ npm install -g @cloudflare/wrangler
-```
-
-事前に [wrangler](https://github.com/cloudflare/wrangler) をインストールしてください。当然 Cloudflare アカウントも必要です。
-
-```bash
 $ yarn install
 ```
 
-依存パッケージをインストールします。
+依存パッケージをインストールします。Node.js 22 以降が必要です。  
+[Wrangler](https://developers.cloudflare.com/workers/wrangler/) も開発用の依存パッケージとして一緒にインストールされるため、グローバルにインストールする必要はありません。当然 Cloudflare アカウントも必要です。
 
-そのあと、wrangler.toml を編集します。  
-自分のアカウントやドメインで動かしたい場合は、少なくとも route, account_id, zone_id を変更する必要があります。
-
-### ビルド
-
-```bash
-$ yarn build
-```
-
-dist/worker.mjs にビルド済みの JS ファイルが出力されます。  
-このファイルが Cloudflare Workers にデプロイされます。
+そのあと、wrangler.jsonc を編集します。  
+自分のアカウントやドメインで動かしたい場合は、少なくとも route を変更する必要があります。
 
 ### 開発サーバーの起動
 
@@ -57,19 +43,26 @@ dist/worker.mjs にビルド済みの JS ファイルが出力されます。
 $ yarn dev
 ```
 
-[Miniflare](https://github.com/cloudflare/miniflare) を使い、ローカル内だけで開発できるように設定しています。  
+Wrangler を使い、Cloudflare Workers と同じランタイム (workerd) でローカル内だけで開発できるように設定しています。  
 開発サーバーは http://localhost:8787/api/ でリッスンされます。
+
+### 型チェック
+
+```bash
+$ yarn typecheck
+```
+
+Workers のランタイムの型定義は、wrangler.jsonc の互換性の日付に合わせて `wrangler types` で生成した worker-configuration.d.ts を使っています。  
+wrangler.jsonc を変更したり Wrangler を更新したりしたときは、`yarn types` で worker-configuration.d.ts を生成し直してください。
 
 ### デプロイ
 
 ```bash
-$ yarn publish-worker
+$ yarn deploy
 ```
 
-ビルドとデプロイが同時に行われます。  
-デプロイした worker.mjs は、10 秒ほどで Cloudflare Workers に反映されます。
-
-> yarn だと publish が内蔵のコマンドと被ってしまうため、`-worker` の Suffix を付けざるを得ない…
+Wrangler が src/index.ts をバンドルしてから、Cloudflare Workers にデプロイします。  
+初回は `yarn wrangler login` で Cloudflare アカウントにログインしてください。
 
 ## License
 

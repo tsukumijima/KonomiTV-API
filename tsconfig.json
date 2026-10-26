@@ -1,14 +1,14 @@
 {
     "compilerOptions": {
-        "target": "esnext",
-        "lib": ["esnext", "webworker"],
+        "target": "es2024",
+        "lib": ["es2024"],
+        "module": "esnext",
+        "moduleResolution": "bundler",
         "strict": true,
-        "moduleResolution": "node",
+        "noEmit": true,
+        "isolatedModules": true,
         "skipLibCheck": true,
-        "esModuleInterop": true,
-        "types": [
-            "@cloudflare/workers-types",
-            "@types/service-worker-mock"
-        ],
+        "types": ["./worker-configuration.d.ts"]
     },
+    "include": ["src", "worker-configuration.d.ts"]
 }

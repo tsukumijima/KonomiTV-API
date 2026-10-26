@@ -1,11 +1,11 @@
 
-import { Router } from 'itty-router';
+import { IttyRouter } from 'itty-router';
 
 
 // API のベースを指定してルーターを初期化
 // 実際にどのサブディレクトリにデプロイされるかは関係なく、URL 上のルート (example.com/) から解析されるらしい
 // ref: https://github.com/kwhitley/itty-router
-const router = Router({base: '/api'});
+const router = IttyRouter({base: '/api'});
 
 
 /**
@@ -100,7 +100,7 @@ export default {
 
         // ルーターに Request を投げ、Response (あるいは undefined) を受け取る
         // ref: https://github.com/kwhitley/itty-router
-        const response = await router.handle(request);
+        const response = await router.fetch(request);
 
         // Response が返ってこなかった場合（基本的にはないが、念のため）
         // 422 Unprocessable Entity を返す

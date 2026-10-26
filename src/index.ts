@@ -1,40 +1,29 @@
 
-import { type IRequest, IttyRouter } from 'itty-router';
+import { Hono } from 'hono';
 
-import { NiconicoRedirectAPI } from './routes/niconico';
-import { createErrorResponse } from './utils';
+import { NiconicoRouter } from './routes/niconico';
+import type { AppEnv } from './types';
 
 
-// API のベースを指定してルーターを初期化
-// 実際にどのサブディレクトリにデプロイされるかは関係なく、URL 上のルート (example.com/) から解析されるらしい
-// ルーターの fetch() に渡した env・ctx は、各ルートのハンドラーに第2・第3引数としてそのまま渡される
-// ref: https://github.com/kwhitley/itty-router
-const router = IttyRouter<IRequest, [Env, ExecutionContext]>({base: '/api'});
+// API のベースを指定してアプリケーションを初期化
+// 実際にどのサブディレクトリにデプロイされるかは関係なく、URL 上のルート (example.com/) から解析される
+// strict: false で、末尾にスラッシュが付いた URL (/api/redirect/niconico/ など) も同じルートとして扱う
+// ref: https://hono.dev/docs/api/hono
+const app = new Hono<AppEnv>({strict: false}).basePath('/api');
 
-// API を追加するときは、src/routes/ 以下にハンドラーを実装し、ここにルートを追加する
-router.get('/redirect/niconico', NiconicoRedirectAPI);
+// API を追加するときは、src/routes/ 以下に Hono インスタンスとしてルートを実装し、ここに追加する
+app.route('/', NiconicoRouter);
 
 // どのルートにも当てはまらなかったときのルート
-// 404 Not Found を返す
-router.get('/*', () => createErrorResponse(404, 'Not Found'));
+// GET の場合は 404 Not Found を、GET 以外のメソッドでリクエストされた場合は 422 Unprocessable Entity を返す
+app.notFound((c) => {
+    if (c.req.method === 'GET') {
+        return c.json({'detail': 'Not Found'}, 404);
+    }
+    return c.json({'detail': 'Unprocessable Entity'}, 422);
+});
 
 
-// ES Modules 構文の Worker を定義
-// ref: https://developers.cloudflare.com/workers/runtime-apis/handlers/fetch/
-export default {
-    async fetch(request, env, ctx) {
-
-        // ルーターに Request を投げ、Response (あるいは undefined) を受け取る
-        // ref: https://github.com/kwhitley/itty-router
-        const response: Response | undefined = await router.fetch(request, env, ctx);
-
-        // Response が返ってこなかった場合（GET 以外のメソッドでリクエストされたときなど）
-        // 422 Unprocessable Entity を返す
-        if (response === undefined) {
-            return createErrorResponse(422, 'Unprocessable Entity');
-        }
-
-        // 取得した Response を返す
-        return response;
-    },
-} satisfies ExportedHandler<Env>;
+// ES Modules 構文の Worker として Hono のアプリケーションをそのまま公開する
+// ref: https://hono.dev/docs/getting-started/cloudflare-workers
+export default app;

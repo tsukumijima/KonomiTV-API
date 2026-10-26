@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "itty-router": "^5.0.24"
+    "hono": "^4.13.14"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

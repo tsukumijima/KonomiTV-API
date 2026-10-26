@@ -1,117 +1,40 @@
 
-import { IttyRouter } from 'itty-router';
+import { type IRequest, IttyRouter } from 'itty-router';
+
+import { NiconicoRedirectAPI } from './routes/niconico';
+import { createErrorResponse } from './utils';
 
 
 // API のベースを指定してルーターを初期化
 // 実際にどのサブディレクトリにデプロイされるかは関係なく、URL 上のルート (example.com/) から解析されるらしい
+// ルーターの fetch() に渡した env・ctx は、各ルートのハンドラーに第2・第3引数としてそのまま渡される
 // ref: https://github.com/kwhitley/itty-router
-const router = IttyRouter({base: '/api'});
+const router = IttyRouter<IRequest, [Env, ExecutionContext]>({base: '/api'});
 
+// API を追加するときは、src/routes/ 以下にハンドラーを実装し、ここにルートを追加する
+router.get('/redirect/niconico', NiconicoRedirectAPI);
 
-/**
- * ニコニコ API (OAuth 2.0) のコールバック URL の実装
- * クエリの "state" パラメーター内の JSON で指定された KonomiTV サーバーに、クエリごと 302 リダイレクトする API
- * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
- * KonomiTV サーバーは認証コードとユーザーの JWT アクセストークンさえ取れれば、OAuth 認証を続行できる
- */
-router.get('/redirect/niconico', (request) => {
-
-    // "state" パラメーターが設定されていない
-    if (request.query?.state === undefined) {
-        return new Response(JSON.stringify({'detail': 'URL query does not have "state" parameter'}), {
-            headers: {'content-type': 'application/json'},
-            status: 400,
-        });
-    }
-
-    // "state" パラメーターをデコード
-    // まず Base64 デコードし、さらに JSON デコードしてオブジェクトにする
-    let state: {[key: string]: string};
-    try {
-        state = JSON.parse(atob(request.query?.state as string));
-    } catch (error) {
-        return new Response(JSON.stringify({'detail': '"state" parameter is invalid'}), {
-            headers: {'content-type': 'application/json'},
-            status: 400,
-        });
-    }
-
-    // KonomiTV サーバーの URL
-    // https://192-168-1-11.local.konomi.tv/ のようなフォーマット
-    const server_url = state['server']
-
-    // "server" プロパティが URL ではない
-    // ref: https://qiita.com/nagimaruxxx/items/c2f186a2df5e32233122
-    if (server_url.match(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/g) === null) {
-        return new Response(JSON.stringify({'detail': '"server" property is not URL'}), {
-            headers: {'content-type': 'application/json'},
-            status: 400,
-        });
-    }
-
-    // "state" パラメーター以外のクエリを再構築
-    let redirect_url_query = '';
-    for (const [param_key, param_value] of Object.entries(request.query as {[key: string]: string})) {
-
-        // "state" パラメーターはもう不要なので追加しない
-        if (param_key === 'state') continue;
-
-        // key=value の組を追加
-        redirect_url_query += `${param_key}=${param_value}&`;
-    }
-
-    // "state" パラメーター内の JSON の "server" プロパティ以外のプロパティをクエリに追加
-    for (const [param_key, param_value] of Object.entries(state)) {
-
-        // "server" プロパティはもう不要なので追加しない
-        if (param_key === 'server') continue;
-
-        // key=value の組を追加
-        redirect_url_query += `${param_key}=${param_value}&`;
-    }
-
-    // リダイレクト先の URL を組み立てる
-    const redirect_url = `${server_url.replace(/\/$/, '')}/api/niconico/callback?${redirect_url_query}`;
-    console.log(`Redirect to: ${redirect_url}`);
-
-    // 302 リダイレクトを行う
-    return Response.redirect(redirect_url, 302);
-});
-
-
-/**
- * どのルートにも当てはまらなかったときのルート
- * 404 Not Found を返す
- */
-router.get('/*', () => {
-    return new Response(JSON.stringify({'detail': 'Not Found'}), {
-        headers: {'content-type': 'application/json'},
-        status: 404,
-    });
-});
+// どのルートにも当てはまらなかったときのルート
+// 404 Not Found を返す
+router.get('/*', () => createErrorResponse(404, 'Not Found'));
 
 
 // ES Modules 構文の Worker を定義
-// まだ普及していないけど、とりあえず動くのでヨシ！（このあたりで散々試行錯誤した）
-// ref: https://developers.cloudflare.com/workers/cli-wrangler/configuration/#modules
-// ref: https://github.com/gmencz/cloudflare-workers-typescript-esbuild-esm
+// ref: https://developers.cloudflare.com/workers/runtime-apis/handlers/fetch/
 export default {
-    async fetch(request: Request, env: {[key: string]: any}, context: ExecutionContext) {
+    async fetch(request, env, ctx) {
 
         // ルーターに Request を投げ、Response (あるいは undefined) を受け取る
         // ref: https://github.com/kwhitley/itty-router
-        const response = await router.fetch(request);
+        const response: Response | undefined = await router.fetch(request, env, ctx);
 
-        // Response が返ってこなかった場合（基本的にはないが、念のため）
+        // Response が返ってこなかった場合（GET 以外のメソッドでリクエストされたときなど）
         // 422 Unprocessable Entity を返す
         if (response === undefined) {
-            return new Response(JSON.stringify({'detail': 'Unprocessable Entity'}), {
-                headers: {'content-type': 'application/json'},
-                status: 422,
-            });
+            return createErrorResponse(422, 'Unprocessable Entity');
         }
 
         // 取得した Response を返す
         return response;
-    }
-};
+    },
+} satisfies ExportedHandler<Env>;

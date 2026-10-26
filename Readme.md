@@ -9,7 +9,7 @@
 
 [gmencz/cloudflare-workers-typescript-esbuild-esm](https://github.com/gmencz/cloudflare-workers-typescript-esbuild-esm) を参考にして開発しました。
 
-現時点では、Twitter API / ニコニコ API のコールバック URL を、KonomiTV サーバーにクエリごと 302 リダイレクトする API を実装しています。  
+現時点では、ニコニコ API のコールバック URL を、KonomiTV サーバーにクエリごと 302 リダイレクトする API を実装しています。  
 ちょっと URL を修正してリダイレクトするだけの API のためだけにサーバーを立てたくなかったので、無料枠の大きい Cloudflare Workers を採用しました。
 
 OAuth の認証では、コールバック先の URL を、事前にサービスのデベロッパーダッシュボードなどで設定しておく必要があります。  
@@ -19,8 +19,7 @@ OAuth の認証では、コールバック先の URL を、事前にサービス
 
 そこで、一旦この API にコールバック URL を集約してから、サービスからのリダイレクト結果をそれぞれの KonomiTV サーバーに振り分けることにしました。
 
-Twitter API では、クエリの "server" パラメーターで指定された、KonomiTV サーバーの URL へ振り分けます。  
-それ以外の API では、クエリの "state" パラメーターの JSON (Base64 エンコードされている) 内の "server" プロパティで指定された、KonomiTV サーバーの URL へ振り分けます。
+クエリの "state" パラメーターの JSON (Base64 エンコードされている) 内の "server" プロパティで指定された、KonomiTV サーバーの URL へ振り分けます。
 
 最後に KonomiTV サーバーがこの API からのリダイレクトを受け取ることで、コールバック対象の URL が定まらなくても、OAuth 連携ができるようになります。
 

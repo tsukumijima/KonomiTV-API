@@ -9,60 +9,6 @@ const router = Router({base: '/api'});
 
 
 /**
- * Twitter API (OAuth 1.0a) のコールバック URL の実装
- * クエリの "server" パラメーターで指定された KonomiTV サーバーに、クエリごと 302 リダイレクトする API
- * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
- * KonomiTV サーバーは oauth_verifier さえ取れれば、OAuth 認証を続行できる
- */
-router.get('/redirect/twitter', (request) => {
-
-    // リクエストされる URL の例
-    // https://app.konomi.tv/api/redirect/twitter?server=https://192-168-1-11.local.konomi.tv/&oauth_verifier=YOUR_OAUTH_VERIFIER
-    // http://localhost:8787/api/redirect/twitter?server=https://192-168-1-11.local.konomi.tv/&oauth_verifier=YOUR_OAUTH_VERIFIER (開発環境)
-
-    // KonomiTV サーバーの URL
-    // https://192-168-1-11.local.konomi.tv/ のようなフォーマット
-    const server_url = request.query?.server as string | undefined;
-
-    // "server" パラメーターが設定されていない
-    if (server_url === undefined) {
-        return new Response(JSON.stringify({'detail': 'URL query does not have "server" parameter'}), {
-            headers: {'content-type': 'application/json'},
-            status: 400,
-        });
-    }
-
-    // "server" パラメーターが URL ではない
-    // ref: https://qiita.com/nagimaruxxx/items/c2f186a2df5e32233122
-    if (server_url.match(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/g) === null) {
-        return new Response(JSON.stringify({'detail': '"server" parameter is not URL'}), {
-            headers: {'content-type': 'application/json'},
-            status: 400,
-        });
-    }
-
-    // "server" パラメーター以外のクエリを再構築
-    let redirect_url_query = '';
-    for (const [param_key, param_value] of Object.entries(request.query as {[key: string]: string})) {
-
-        // "server" パラメーターはもう不要なので追加しない
-        if (param_key === 'server') continue;
-
-        // key=value の組を追加
-        redirect_url_query += `${param_key}=${param_value}&`;
-    }
-
-    // リダイレクト先の URL を組み立てる
-    // それぞれ末尾の / (URL) と & (クエリ) を除去
-    const redirect_url = `${server_url.replace(/\/$/, '')}/api/twitter/callback?${redirect_url_query.replace(/\&$/, '')}`;
-    console.log(`Redirect to: ${redirect_url}`);
-
-    // 302 リダイレクトを行う
-    return Response.redirect(redirect_url, 302);
-});
-
-
-/**
  * ニコニコ API (OAuth 2.0) のコールバック URL の実装
  * クエリの "state" パラメーター内の JSON で指定された KonomiTV サーバーに、クエリごと 302 リダイレクトする API
  * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした

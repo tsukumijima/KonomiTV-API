@@ -1,16 +1,25 @@
 
 import { Hono } from 'hono';
 
+import { RedirectConfirmPage, RedirectConfirmPageHeaders } from '../pages/redirect-confirm';
 import type { AppEnv } from '../types';
 
 
 // ニコニコ API 関連のルート
 export const NiconicoRouter = new Hono<AppEnv>();
 
+// 確認画面を挟まずにそのままリダイレクトする転送先のオリジン
+// 本番の NX-Jikkyo サーバーは攻撃者が認可コードを受け取れる転送先ではなく、連携した結果も
+// コールバックを受けたブラウザの Cookie にだけ保存されるので、確認画面を出さずにリダイレクトする
+const TRUSTED_SERVER_ORIGINS = [
+    'https://nx-jikkyo.tsukumijima.net',
+];
+
 
 /**
  * ニコニコ API (OAuth 2.0) のコールバック URL の実装
  * クエリの "state" パラメーター内の JSON で指定された KonomiTV サーバーに、クエリごと 302 リダイレクトする API
+ * 認可コードが含まれる場合は、すぐにはリダイレクトせず、転送先のサーバーを利用者に確認してもらう画面を返す
  * KonomiTV サーバーの URL は環境によってまちまちでコールバック URL を一意に決められないため、一旦ここに集約した上でリダイレクトするようにした
  * KonomiTV サーバーは認証コードとユーザーの JWT アクセストークンさえ取れれば、OAuth 認証を続行できる
  */
@@ -52,9 +61,14 @@ NiconicoRouter.get('/redirect/niconico', (c) => {
     // https://192-168-1-11.local.konomi.tv/ のようなフォーマット
     const server_url = state_object['server'];
 
-    // "server" プロパティが URL ではない
-    // ref: https://qiita.com/nagimaruxxx/items/c2f186a2df5e32233122
-    if (typeof server_url !== 'string' || server_url.match(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/g) === null) {
+    // "server" プロパティが http / https の URL ではない
+    // 確認画面に転送先のホスト名を表示するため、URL として解析できることまで確認する
+    // (以前の正規表現による判定では、"evil https://example.com" のような URL として解析できない値も通ってしまっていた)
+    if (typeof server_url !== 'string') {
+        return c.json({'detail': '"server" property is not URL'}, 400);
+    }
+    const server_url_object = URL.parse(server_url);
+    if (server_url_object === null || (server_url_object.protocol !== 'http:' && server_url_object.protocol !== 'https:')) {
         return c.json({'detail': '"server" property is not URL'}, 400);
     }
 
@@ -92,6 +106,16 @@ NiconicoRouter.get('/redirect/niconico', (c) => {
     const redirect_url = `${server_url.replace(/\/$/, '')}/api/niconico/callback?${redirect_url_query}`;
     console.log(`Redirect to: ${redirect_url}`);
 
-    // 302 リダイレクトを行う
-    return Response.redirect(redirect_url, 302);
+    // 認可コードが含まれていない場合 (利用者がニコニコ側で連携を拒否した場合など) は、送られて困る情報がないので
+    // これまで通りそのまま 302 リダイレクトを行う
+    // 転送先が本番の NX-Jikkyo サーバーの場合も、確認画面を出さずにそのまま 302 リダイレクトを行う
+    // (ホスト名の一部ではなくオリジン全体で比べ、似せたホスト名やポート番号違いでは確認画面を出す)
+    if (search_params.has('code') === false || TRUSTED_SERVER_ORIGINS.includes(server_url_object.origin)) {
+        return Response.redirect(redirect_url, 302);
+    }
+
+    // 認可コードが含まれている場合は、すぐにはリダイレクトせず、転送先のサーバーを利用者に確認してもらう画面を返す
+    // 罠のリンクで "state" の転送先を攻撃者のサーバーに書き換えられていても、利用者が気づいて連携を止められるようにするため
+    // 確認画面の「連携を続ける」ボタンはリダイレクト先の URL へのリンクなので、押すと 302 リダイレクトと全く同じ URL に遷移する
+    return c.html(RedirectConfirmPage(redirect_url, server_url_object.host), 200, RedirectConfirmPageHeaders);
 });

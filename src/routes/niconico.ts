@@ -67,12 +67,17 @@ export const NiconicoRedirectAPI: APIHandler = (request) => {
 /**
  * "state" パラメーターを Base64 デコードし、さらに JSON デコードしてオブジェクトにする
  * @param state_base64 KonomiTV サーバーが JSON を Base64 エンコードした "state" パラメーターの値
- * @returns デコードしたオブジェクト (Base64 や JSON として不正な値か、JSON がオブジェクトでない場合は null)
+ * @returns デコードしたオブジェクト (Base64・UTF-8・JSON として不正な値か、JSON がオブジェクトでない場合は null)
  */
 function decodeState(state_base64: string): Record<string, unknown> | null {
+    // KonomiTV サーバーは JSON を UTF-8 でエンコードしてから Base64 エンコードしている
+    // atob() はデコードしたバイト列を1バイト1文字の文字列で返すので、そのまま JSON デコードすると ASCII 以外の文字が文字化けし、
+    // リダイレクト先の URL では文字化けした文字がさらに UTF-8 でエンコードされてしまう
+    // そこでバイト列に戻してから TextDecoder で UTF-8 としてデコードする (UTF-8 として不正なバイト列は不正な値として扱う)
     let state: unknown;
     try {
-        state = JSON.parse(atob(state_base64));
+        const state_bytes = Uint8Array.from(atob(state_base64), (char) => char.charCodeAt(0));
+        state = JSON.parse(new TextDecoder('utf-8', {fatal: true, ignoreBOM: false}).decode(state_bytes));
     } catch {
         return null;
     }
